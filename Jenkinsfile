@@ -23,6 +23,9 @@ spec:
       limits:
         memory: "512Mi"
         cpu: "500m"
+    volumeMounts:
+    - name: tmp-vol
+      mountPath: /tmp
   - name: kaniko
     image: gcr.io/kaniko-project/executor:debug
     command: ['cat']
@@ -65,6 +68,8 @@ spec:
           - path: namespace
             fieldRef:
               fieldPath: metadata.namespace
+  - name: tmp-vol
+    emptyDir: {}
 '''
         }
     }
