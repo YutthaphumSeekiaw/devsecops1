@@ -9,11 +9,19 @@ metadata:
   labels:
     app: trivy-agent
 spec:
+  restartPolicy: Never
   containers:
   - name: trivy
     image: aquasec/trivy:0.48.0
     command: ['cat']
     tty: true
+    resources:
+      requests:
+        memory: "256Mi"
+        cpu: "100m"
+      limits:
+        memory: "512Mi"
+        cpu: "500m"
 '''
         }
     }
