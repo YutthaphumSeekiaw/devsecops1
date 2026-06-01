@@ -2,6 +2,8 @@ pipeline {
     agent {
         // สั่งให้ Jenkins งอก Pod พิเศษชื่อ trivy-agent ขึ้นมาบน Colima K8s
         kubernetes {
+            cloud 'kubernetes'
+            namespace 'default'
             yaml '''
 apiVersion: v1
 kind: Pod
@@ -10,6 +12,7 @@ metadata:
     app: trivy-agent
 spec:
   restartPolicy: Never
+  serviceAccountName: default
   containers:
   - name: trivy
     image: aquasec/trivy:0.48.0
