@@ -135,34 +135,14 @@ spec:
                 container('kubectl') {
                     echo '=== Deploying to Kubernetes ==='
                     sh '''
-                        mkdir -p /home/jenkins/.kube
-                        cat > /home/jenkins/.kube/config <<'EOF'
-apiVersion: v1
-kind: Config
-clusters:
-- name: in-cluster
-  cluster:
-    certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
-    server: https://kubernetes.default.svc
-contexts:
-- name: in-cluster
-  context:
-    cluster: in-cluster
-    namespace: default
-    user: default
-current-context: in-cluster
-users:
-- name: default
-  user:
-    token: $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-EOF
-                        export KUBECONFIG=/home/jenkins/.kube/config
+                        TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+                        CTL="kubectl --server=https://kubernetes.default.svc --certificate-authority=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt --token=$TOKEN"
                         echo "Kubectl version:"
-                        kubectl version --short
+                        $CTL version --short
                         echo "Applying Kubernetes deployment manifest..."
-                        kubectl apply -f k8s-deploy.yaml
+                        $CTL apply -f k8s-deploy.yaml
                         echo "Service and deployment status:"
-                        kubectl get svc,deployment -n default || true
+                        $CTL get svc,deployment -n default || true
                     '''
                 }
             }
@@ -173,9 +153,10 @@ EOF
                 container('kubectl') {
                     echo '=== Verifying Deployment Health ==='
                     sh '''
-                        export KUBECONFIG=/home/jenkins/.kube/config
-                        kubectl get pods -n default -o wide
-                        kubectl get services -n default
+                        TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+                        CTL="kubectl --server=https://kubernetes.default.svc --certificate-authority=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt --token=$TOKEN"
+                        $CTL get pods -n default -o wide
+                        $CTL get services -n default
                     '''
                 }
             }

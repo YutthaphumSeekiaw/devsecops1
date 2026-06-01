@@ -17,7 +17,7 @@ spec:
       containers:
         - name: web-app
           image: my-secure-app:latest # ดึง Image ที่ Jenkins เพิ่ง Build เสร็จมาใช้งาน
-          imagePullPolicy: Never # สั่งให้ดึง Image จากในเครื่อง Colima ตรงๆ ไม่ต้องโหลดจากเน็ต
+          imagePullPolicy: IfNotPresent # ถ้าอยู่ใน node แล้วให้ใช้ภาพจาก local cache
           ports:
             - containerPort: 3000
           securityContext:
