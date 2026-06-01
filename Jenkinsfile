@@ -34,7 +34,7 @@ spec:
         memory: "1Gi"
         cpu: "500m"
   - name: kubectl
-    image: bitnami/kubectl:1.28
+    image: bitnami/kubectl:latest
     command: ['cat']
     tty: true
     resources:
@@ -146,22 +146,17 @@ spec:
 
     post {
         always {
-            echo '=== Archiving Reports & Logs ==='
-            archiveArtifacts artifacts: '*-report.json', allowEmptyArchive: true
-            sh 'echo "Pipeline execution completed at: $(date)"'
+            echo '=== Pipeline Execution Completed ==='
+            sh 'echo "Finished at: $(date)"' || true
         }
         success {
             echo '✅ Pipeline PASSED - All stages completed successfully!'
         }
         unstable {
-            echo '⚠️ Pipeline UNSTABLE - Some security issues were found but build continued.'
+            echo '⚠️ Pipeline UNSTABLE - Some issues found but build continued.'
         }
         failure {
-            echo '❌ Pipeline FAILED - Please check the logs above for errors.'
-        }
-        cleanup {
-            echo 'Cleaning up workspace...'
-            cleanWs()
+            echo '❌ Pipeline FAILED - Check logs for errors.'
         }
     }
 }
