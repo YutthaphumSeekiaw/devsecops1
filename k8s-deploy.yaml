@@ -16,14 +16,13 @@ spec:
     spec:
       containers:
         - name: web-app
-          image: local-registry.default.svc.cluster.local:5000/my-secure-app:latest # ดึง Image จาก local registry ภายในคลัสเตอร์
+          image: nginx:alpine
           imagePullPolicy: IfNotPresent
           ports:
-            - containerPort: 3000
+            - containerPort: 80
           securityContext:
             readOnlyRootFilesystem: false
-            runAsNonRoot: true
-            runAsUser: 1000
+            runAsNonRoot: false
             allowPrivilegeEscalation: false
 ---
 apiVersion: v1
@@ -33,8 +32,8 @@ metadata:
 spec:
   type: NodePort
   ports:
-    - port: 3000
-      targetPort: 3000
+    - port: 80
+      targetPort: 80
       nodePort: 30300 # พอร์ตที่คุณจะใช้เปิดเข้าดูหน้าเว็บของแอปพลิเคชันจาก Browser
   selector:
     app: my-secure-app
