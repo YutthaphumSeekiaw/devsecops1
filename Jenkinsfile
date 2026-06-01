@@ -2,6 +2,7 @@ pipeline {
     agent {
         // สั่งให้ Jenkins งอก Pod พิเศษชื่อ trivy-agent ขึ้นมาบน Colima K8s
         kubernetes {
+            serverUrl 'https://kubernetes.default.svc.cluster.local'
             yaml '''
 apiVersion: v1
 kind: Pod
