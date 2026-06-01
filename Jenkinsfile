@@ -38,9 +38,6 @@ spec:
     image: bitnami/kubectl:latest
     command: ['cat']
     tty: true
-    env:
-    - name: KUBECONFIG
-      value: /var/run/secrets/kubernetes.io/serviceaccount/kubeconfig
     resources:
       requests:
         memory: "128Mi"
@@ -133,47 +130,54 @@ spec:
             }
         }
 
-        stage('5. Generate Security Report') {
+        stage('5. Deploy to Kubernetes') {
             steps {
-                container('trivy') {
-                    echo '=== Generating Final Security Report ==='
+                container('kubectl') {
+                    echo '=== Deploying to Kubernetes ==='
                     sh '''
-                        echo "Summary of vulnerability reports:"
-                        if [ -f trivy-fs-report.json ]; then
-                            echo "✓ Filesystem scan report created: trivy-fs-report.json"
-                        fi
-                        if [ -f trivy-config-report.json ]; then
-                            echo "✓ Configuration scan report created: trivy-config-report.json"
-                        fi
-                        echo ""
-                        echo "Pipeline artifacts generated successfully!"
+                        mkdir -p /home/jenkins/.kube
+                        cat > /home/jenkins/.kube/config <<'EOF'
+apiVersion: v1
+kind: Config
+clusters:
+- name: in-cluster
+  cluster:
+    certificate-authority: /var/run/secrets/kubernetes.io/serviceaccount/ca.crt
+    server: https://kubernetes.default.svc
+contexts:
+- name: in-cluster
+  context:
+    cluster: in-cluster
+    namespace: default
+    user: default
+current-context: in-cluster
+users:
+- name: default
+  user:
+    token: $(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+EOF
+                        export KUBECONFIG=/home/jenkins/.kube/config
+                        echo "Kubectl version:"
+                        kubectl version --short
+                        echo "Applying Kubernetes deployment manifest..."
+                        kubectl apply -f k8s-deploy.yaml
+                        echo "Service and deployment status:"
+                        kubectl get svc,deployment -n default || true
                     '''
                 }
             }
         }
 
-        stage('6. Build Summary') {
+        stage('6. Verify Deployment Status') {
             steps {
-                echo '=== Build Pipeline Summary ==='
-                sh '''
-                    echo ""
-                    echo "┌─────────────────────────────────────┐"
-                    echo "│   DevSecOps Pipeline Summary        │"
-                    echo "├─────────────────────────────────────┤"
-                    echo "│ ✓ Source Code Scanned              │"
-                    echo "│ ✓ Secrets Detection Completed      │"
-                    echo "│ ✓ Dockerfile Configuration Checked │"
-                    echo "│ ✓ Docker Image Built (Kaniko)      │"
-                    echo "│ ✓ Security Reports Generated       │"
-                    echo "└─────────────────────────────────────┘"
-                    echo ""
-                    echo "Deploy manifests available:"
-                    echo "  - jenkins-k8s.yaml (Jenkins deployment)"
-                    echo "  - k8s-deploy.yaml (Application deployment)"
-                    echo ""
-                    echo "To deploy manually, run:"
-                    echo "  kubectl apply -f k8s-deploy.yaml"
-                '''
+                container('kubectl') {
+                    echo '=== Verifying Deployment Health ==='
+                    sh '''
+                        export KUBECONFIG=/home/jenkins/.kube/config
+                        kubectl get pods -n default -o wide
+                        kubectl get services -n default
+                    '''
+                }
             }
         }
     }
