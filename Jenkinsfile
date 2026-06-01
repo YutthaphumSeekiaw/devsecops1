@@ -41,6 +41,8 @@ spec:
     image: bitnami/kubectl:latest
     command: ['cat']
     tty: true
+    securityContext:
+      runAsUser: 0
     resources:
       requests:
         memory: "128Mi"
