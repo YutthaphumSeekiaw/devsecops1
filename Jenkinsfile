@@ -117,7 +117,7 @@ spec:
                         echo "Kubectl version:"
                         kubectl version --short
                         echo "Applying Kubernetes manifests..."
-                        kubectl apply -f jenkins-k8s.yaml || true
+                        kubectl apply -f jenkins-k8s.yaml
                         echo "Current deployments:"
                         kubectl get deployments -n default
                     '''
@@ -131,13 +131,10 @@ spec:
                     echo '=== Verifying Deployment Health ==='
                     sh '''
                         echo "Pod Status:"
-                        kubectl get pods -n default -o wide || true
+                        kubectl get pods -n default -o wide
                         echo ""
                         echo "Service Status:"
-                        kubectl get services -n default || true
-                        echo ""
-                        echo "Deployment Details:"
-                        kubectl describe deployment jenkins -n default || true
+                        kubectl get services -n default
                     '''
                 }
             }
@@ -147,7 +144,6 @@ spec:
     post {
         always {
             echo '=== Pipeline Execution Completed ==='
-            sh 'echo "Finished at: $(date)"' || true
         }
         success {
             echo '✅ Pipeline PASSED - All stages completed successfully!'
