@@ -111,26 +111,42 @@ spec:
             }
         }
 
-        stage('4. Build Docker Image (Kaniko Secure Build)') {
+        stage('4. Start Local Registry') {
+            steps {
+                container('kubectl') {
+                    echo '=== Starting Local Registry ==='
+                    sh '''
+                        TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
+                        CTL="kubectl --server=https://kubernetes.default.svc --certificate-authority=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt --token=$TOKEN"
+                        echo "Applying local registry manifest..."
+                        $CTL apply -f local-registry.yaml
+                        echo "Waiting for registry deployment..."
+                        $CTL rollout status deployment/local-registry -n default --timeout=60s
+                    '''
+                }
+            }
+        }
+
+        stage('5. Build Docker Image (Kaniko Secure Build)') {
             steps {
                 container('kaniko') {
                     echo '=== Building Secure Docker Image with Kaniko ==='
                     sh '''
-                        echo "Building Docker image without pushing to registry..."
+                        echo "Building Docker image and pushing to local registry..."
                         /kaniko/executor \
                           --context=. \
                           --dockerfile=./Dockerfile \
-                          --destination=my-secure-app:${BUILD_NUMBER} \
-                          --destination=my-secure-app:latest \
-                          --no-push \
-                          --tar-path=/workspace/image.tar || true
+                          --destination=local-registry.default.svc.cluster.local:5000/my-secure-app:${BUILD_NUMBER} \
+                          --destination=local-registry.default.svc.cluster.local:5000/my-secure-app:latest \
+                          --insecure \
+                          --cache=true
                         echo "Image build completed"
                     '''
                 }
             }
         }
 
-        stage('5. Deploy to Kubernetes') {
+        stage('6. Deploy to Kubernetes') {
             steps {
                 container('kubectl') {
                     echo '=== Deploying to Kubernetes ==='

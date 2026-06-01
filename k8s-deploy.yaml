@@ -16,8 +16,8 @@ spec:
     spec:
       containers:
         - name: web-app
-          image: my-secure-app:latest # ดึง Image ที่ Jenkins เพิ่ง Build เสร็จมาใช้งาน
-          imagePullPolicy: IfNotPresent # ถ้าอยู่ใน node แล้วให้ใช้ภาพจาก local cache
+          image: local-registry.default.svc.cluster.local:5000/my-secure-app:latest # ดึง Image จาก local registry ภายในคลัสเตอร์
+          imagePullPolicy: IfNotPresent
           ports:
             - containerPort: 3000
           securityContext:
