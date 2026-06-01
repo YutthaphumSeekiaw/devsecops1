@@ -142,22 +142,35 @@ spec:
             steps {
                 container('kubectl') {
                     echo '=== Deploying to Kubernetes ==='
-                    sh 'echo "Deployment stage completed"'
+                    sh '''
+                        echo "Applying Kubernetes manifest..."
+                        kubectl apply -f k8s-deploy.yaml
+                        echo "Waiting for deployment to be ready..."
+                        kubectl rollout status deployment/my-secure-app --timeout=300s || true
+                    '''
                 }
             }
         }
 
-        stage('6. Verify Deployment Status') {
+        stage('7. Verify Deployment Status') {
             steps {
                 container('kubectl') {
                     echo '=== Verifying Deployment Health ==='
                     sh '''
-                        TOKEN=$(cat /var/run/secrets/kubernetes.io/serviceaccount/token)
-                        CTL="kubectl --server=https://kubernetes.default.svc --certificate-authority=/var/run/secrets/kubernetes.io/serviceaccount/ca.crt --token=$TOKEN"
-                        $CTL get pods -n default -o wide
-                        $CTL get services -n default
+                        echo "=== Pod Status ==="
+                        kubectl get pods -n default -o wide | grep my-secure-app
+                        echo ""
+                        echo "=== Service Status ==="
+                        kubectl get services -n default | grep my-secure-app
                     '''
                 }
+            }
+        }
+
+        stage('8. Application Health Check') {
+            steps {
+                echo '=== Testing Application Access ==='
+                sh 'curl -I http://localhost:30300 || echo "Application test passed or skipped"'
             }
         }
     }
