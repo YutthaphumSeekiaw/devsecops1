@@ -32,6 +32,10 @@ spec:
           volumeMounts:
             - name: jenkins-data
               mountPath: /var/jenkins_home
+          securityContext:
+            readOnlyRootFilesystem: false
+            runAsNonRoot: false
+            allowPrivilegeEscalation: true
       volumes:
         - name: jenkins-data
           persistentVolumeClaim:

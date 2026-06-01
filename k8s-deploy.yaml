@@ -20,6 +20,11 @@ spec:
           imagePullPolicy: Never # สั่งให้ดึง Image จากในเครื่อง Colima ตรงๆ ไม่ต้องโหลดจากเน็ต
           ports:
             - containerPort: 3000
+          securityContext:
+            readOnlyRootFilesystem: false
+            runAsNonRoot: true
+            runAsUser: 1000
+            allowPrivilegeEscalation: false
 ---
 apiVersion: v1
 kind: Service
