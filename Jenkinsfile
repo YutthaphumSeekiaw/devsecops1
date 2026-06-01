@@ -1,7 +1,22 @@
 pipeline {
-    // เปลี่ยนจาก agent { kubernetes { ... } } มาเป็น agent any 
-    // เพื่อให้ Jenkins รันงานบนพื้นที่ของตัวเองได้ทันที ไม่ต้องเสี่ยงดึง Agent ข้ามเครือข่าย
-    agent any
+    agent {
+        // สั่งให้ Jenkins งอก Pod พิเศษชื่อ trivy-agent ขึ้นมาบน Colima K8s
+        kubernetes {
+            yaml '''
+apiVersion: v1
+kind: Pod
+metadata:
+  labels:
+    app: trivy-agent
+spec:
+  containers:
+  - name: trivy
+    image: aquasec/trivy:0.48.0
+    command: ['cat']
+    tty: true
+'''
+        }
+    }
 
     stages {
         stage('1. Checkout Code') {
@@ -12,18 +27,22 @@ pipeline {
 
         stage('2. Security Scan (Source Code & Secrets)') {
             steps {
-                echo '=== Scanning Source Code and Hidden Secrets with Trivy Container ==='
-                // สั่งงานดึง Trivy Image มารันสแกนโฟลเดอร์ปัจจุบันตรงๆ 
-                // เทคนิคนี้เรียกว่า Docker-outside-of-Docker (DooD) ปลอดภัยและไม่ติดปัญหาเน็ตเวิร์กคลัสเตอร์
-                sh 'docker run --rm -v \$(pwd):/apps aquasec/trivy:0.48.0 fs --vuln-type os,library --scanners vuln,secret /apps'
+                // สั่งให้รีโมทเข้าไปทำงานข้างในคอนเทนเนอร์ชื่อ trivy ที่เราเตรียมไว้ด้านบน
+                container('trivy') {
+                    echo '=== Scanning Source Code and Hidden Secrets with Trivy Pod ==='
+                    // รันคำสั่งสแกนโดยตรง ไม่ต้องใช้คำว่า "docker run" นำหน้าแล้ว
+                    sh 'trivy fs --vuln-type os,library --scanners vuln,secret .'
+                }
             }
         }
 
         stage('3. Security Scan (Dockerfile Misconfiguration)') {
             steps {
-                echo '=== Scanning Dockerfile for Misconfigurations ==='
-                // สแกนตรวจสอบความปลอดภัยของโครงสร้าง Dockerfile 
-                sh 'docker run --rm -v \$(pwd):/apps aquasec/trivy:0.48.0 config --severity HIGH,CRITICAL /apps'
+                container('trivy') {
+                    echo '=== Scanning Dockerfile for Misconfigurations ==='
+                    // สแกนตรวจสอบไฟล์โครงสร้าง Dockerfile 
+                    sh 'trivy config --severity HIGH,CRITICAL .'
+                }
             }
         }
     }
